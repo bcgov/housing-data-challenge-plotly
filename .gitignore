@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+README.html
+data-raw/*.zip
+data-raw/*.csv
+notes.txt
+dates.png

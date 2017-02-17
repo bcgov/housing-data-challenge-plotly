@@ -1,0 +1,44 @@
+Expo Line
+Travel Times Between Stations
+This table shows station to station travel times indicated by the number of minutes.
+Allow extra time between station platforms, entrances, and for bus connections.
+Waterfront
+                                                       Main Street–Science World
+                                   Stadium–Chinatown
+             Burrard
+                                                                                   Commercial-Broadway
+                       Granville
+  2
+  3            1
+  5            3          2
+                                                                                                                               Joyce–Collingwood
+  7            5          4             2
+                                                                                                         Nanaimo
+ 10            8          7             5                    3
+                                                                                                                   29th Ave.
+ 13          11         10              8                    6                             3
+ 14          12         11              9                    7                             4               1
+                                                                                                                                                   Patterson
+                                                                                                                                                               Metrotown
+ 16          14         13           11                      9                             6               3          2
+ 18          16         15           13                 11                                 8               5          4              2
+                                                                                                                                                                           Royal Oak
+ 20          18         17           15                 13                             10                  7          6              4                2
+                                                                                                                                                                                       Edmonds
+                                                                                                                                                                                                               New Westminster
+                                                                                                                                                                                                 22nd Street
+ 21          19         18           16                 14                             11                  8          7              5                3          1
+ 24          22         21           19                 17                             14                 11        10               8                6          4            3
+ 27          25         24           22                 20                             17                 14        13            11                  9          7            6          3
+                                                                                                                                                                                                                                 Columbia
+                                                                                                                                                                                                                                            Scott Road
+ 30          28         27           25                 23                             20                 17        16            14                 12         10            9          6          3
+ 31          29         28           26                 24                             21                 18        17            15                 13         11          10           7          4              1
+                                                                                                                                                                                                                                                                   Surrey Central
+                                                                                                                                                                                                                                                         Gateway
+ 34          32         31           29                 27                             24                 21        20            18                 16         14          13          10          7              4                3
+                                                                                                                                                                                                                                                                                    King George
+ 37          35         34           32                 30                             27                 24        23            21                 19         17          16          13         10              7                6          3
+ 39          37         36           34                 32                             29                 26        25            23                 21         19          18          15         12              9                8          5           2
+ 40          38         37           35                 33                             30                 27        26            24                 22         20          19          16         13           10                  9          6           3           1
+
