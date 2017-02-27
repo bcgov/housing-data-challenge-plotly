@@ -10,10 +10,11 @@
 
 launch <- function(prompt = interactive()) {
   
-  # geographic data
+  # geographic data, ordered from largest to smallest 
   data("geoDevelopments", package = "bcviz")
   data("geoDistricts", package = "bcviz")
   data("geoMunicipals", package = "bcviz")
+  data("geoCensusTracts", package = "bcviz")
   
   # population estimates
   data("popDevelopments", package = "bcviz")
@@ -26,17 +27,22 @@ launch <- function(prompt = interactive()) {
   
   # user interface
   ui <- fluidPage(fluidRow(
+    
+    include_css("region.css"),
     column(
       4, leafletOutput("map", height = 450),
-      # TODO: should this be a conditional panel (based on the statistic)?
-      selectInput(
-        "regionType", "Choose a resolution:",
-        c("Development Regions" = "developments", 
-          "Regional Districts" = "districts")
-      )
+      uiOutput("regionTypes")
     ),
     column(
-      8, plotlyOutput("pop", height = 650)
+      8, tabsetPanel(
+        id = "currentTab",
+        tabPanel(
+          "Population", plotlyOutput("pop", height = 650), value = "population"
+        ),
+        tabPanel(
+          "Debug", verbatimTextOutput("debug"), value = "debug"
+        )
+      )
     )
   ))
   
@@ -60,11 +66,14 @@ launch <- function(prompt = interactive()) {
       # TODO: clicking on an already clicked region should remove it...
       regions$selected <- c(regions$selected, input$map_shape_click)
       
+      validateRegionType(input$regionType)
+      
       d <- switch(
         input$regionType,
         developments = geoDevelopments,
         districts = geoDistricts,
-        municipals = geoMunicipals
+        municipals = geoMunicipals,
+        tracts = geoCensusTracts
       )
       
       d <- d[d$label %in% input$map_shape_click$id, ]
@@ -87,6 +96,8 @@ launch <- function(prompt = interactive()) {
     
     output$pop <- renderPlotly({
       
+      validateRegionType(input$regionType)
+      
       d <- switch(
         input$regionType,
         developments = popDevelopments,
@@ -108,12 +119,15 @@ launch <- function(prompt = interactive()) {
       ggplotly(p, dynamicTicks = TRUE, tooltip = "Gender") %>%
         hide_legend() %>%
         animation_opts(300)
+      
     })
     
     # redraw polygons upon changing the region type
     observeEvent(input$regionType, {
       
       regions$selected <- NULL
+      
+      validateRegionType(input$regionType)
       
       d <- switch(
         input$regionType,
@@ -134,10 +148,35 @@ launch <- function(prompt = interactive()) {
         )
     })
     
+    output$regionTypes <- renderUI({
+      selectInput(
+        "regionType", "Choose a resolution:", geoByStat(input$currentTab)
+      )
+    })
+    
+    output$debug <- renderPrint({
+      ls(input)
+    })
+    
   }
   
   shinyApp(
     ui, server, 
     options = list(launch.browser = prompt)
   )
+}
+
+
+
+
+validateRegionType <- function(type) {
+  validate(
+    need(type, "Loading..."),
+    errorClass = "region"
+  )
+}
+
+include_css <- function(file) {
+  path <- system.file("css", package = "bcviz")
+  includeCSS(file.path(path, file))
 }

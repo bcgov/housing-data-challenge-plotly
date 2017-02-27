@@ -1,0 +1,9 @@
+.shiny-output-error-region { 
+  text-align:center; 
+  vertical-align:middle;
+  font-size: 4em;
+  font-family: Dosis,sans-serif;
+  color: #2a3f5f;
+  margin-top: 100px;
+  margin-left: 100px;
+}
