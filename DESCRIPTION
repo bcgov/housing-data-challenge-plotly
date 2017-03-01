@@ -13,7 +13,8 @@ Imports:
   dplyr,
   tibble,
   shiny,
-  ggplot2
+  ggplot2,
+  crosstalk
 Suggests:
   curl,
   rvest,
@@ -23,5 +24,5 @@ Suggests:
   bookdown
 RoxygenNote: 6.0.1
 Remotes:
-  rstudio/leaflet,
+  cpsievert/leaflet@carson/feature/plotly,
   ropensci/plotly

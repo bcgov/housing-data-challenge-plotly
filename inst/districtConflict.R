@@ -1,3 +1,20 @@
+# ---------------------------------------------------------------------------
+# NOTE: the problem described below can be resolved with this data...
+# ---------------------------------------------------------------------------
+
+concordance <- readr::read_csv(
+  "https://raw.githubusercontent.com/bcgov/housing-data-visualization-project/master/data/geography-concordance.csv"
+)
+
+# really??
+with(concordance, identical(SGC, SGC_5digit))
+#> [1] TRUE
+
+
+# ---------------------------------------------------------------------------
+# The actual problem... a mismatch in distrcit region codes
+# ---------------------------------------------------------------------------
+
 library(curl)
 library(sf)
 

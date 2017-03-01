@@ -14,3 +14,10 @@ houseDistricts %>%
   arrange(year)
 
 devtools::use_data(houseDistricts, overwrite = TRUE)
+
+
+
+# ----------------------------------------------------------------------------
+# UPDATE: we now have population/dwelling at the census tract level which makes this obsolete?
+# http://www12.statcan.gc.ca/census-recensement/2016/dp-pd/hlt-fst/pd-pl/comprehensive.cfm
+# ----------------------------------------------------------------------------

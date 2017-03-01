@@ -14,7 +14,7 @@ if (!file.exists(target)) {
   curl_download(district, target)
 }
 unzip(target, exdir = "data-raw/tmp")
-d <- st_read("data-raw/tmp/DR.shp")
+d <- st_read("data-raw/tmp/DR.shp", stringsAsFactors = FALSE)
 d2 <- st_simplify(d, dTolerance = 350)
 geoDevelopments <- mutate(st_transform(d2, 4326), label = DR_NAME)
 devtools::use_data(geoDevelopments, overwrite = TRUE)
@@ -68,3 +68,37 @@ devtools::use_data(geoMunicipals, overwrite = TRUE)
 
 # clean-up uncompressed files
 unlink("data-raw/tmp", recursive = TRUE)
+
+
+
+# ------------------------------------------------------------------------------
+# Census boundaries at different resolutions
+# http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/bound-limit-2016-eng.cfm
+# ------------------------------------------------------------------------------
+
+curl::curl_download(
+  "http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/2016/lct_000a16a_e.zip",
+  "data-raw/lct_000a16a_e.zip"
+)
+unzip("data-raw/lct_000a16a_e.zip", exdir = "data-raw/tmp")
+d <- st_read("data-raw/tmp/lct_000a16a_e.shp", stringsAsFactors = FALSE)
+dbc <- d[grepl("British Columbia", d$PRNAME, fixed = TRUE), ]
+# only keep the important bits
+geoCensusTracts <- dbc %>%
+  mutate(label = CTUID, label = CTUID) %>%
+  select(label, geometry) %>%
+  st_transform(4326)
+devtools::use_data(geoCensusTracts, overwrite = TRUE)
+
+
+# have a look at census locations
+library(leaflet)
+leaflet(geoCensusTracts) %>%
+  addTiles() %>%
+  addPolygons(
+    weight = 1, 
+    highlightOptions = highlightOptions(
+      fillOpacity = 1,
+      opacity = 1
+    )
+  )

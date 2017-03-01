@@ -43,7 +43,6 @@ library(dplyr)
 library(crosstalk)
 library(plotly)
 
-
 # total counts
 d <- gather(ptt, variable, value, matches("^no_.*_tot$"))
 d$variable <- sub("_tot$", "", sub("^no_", "", d$variable))

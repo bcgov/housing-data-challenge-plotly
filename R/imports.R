@@ -4,4 +4,5 @@
 #' @import leaflet
 #' @import dplyr
 #' @import ggplot2
+#' @import crosstalk
 NULL
