@@ -39,8 +39,7 @@ popDistricts <- pd %>%
     loess(Population ~ Age, data = ., span = 0.3), newdata = AgeDF
   )[c("Age", ".fitted")]) %>%
   unnest() %>%
-  rename(Population = .fitted)
-
+  rename(Population = .fitted, label = district)
 
 devtools::use_data(popDistricts, overwrite = TRUE)
 
@@ -86,19 +85,19 @@ popDevelopments <- pd %>%
     loess(Population ~ Age, data = ., span = 0.3), newdata = AgeDF
   )[c("Age", ".fitted")]) %>%
   unnest() %>%
-  rename(Population = .fitted)
+  rename(Population = .fitted, label = development)
 
 
 devtools::use_data(popDevelopments, overwrite = TRUE)
 
 
 # visualize evolution for entire BC area
-bc <- filter(popDevelopments, development %in% c("British Columbia", "Kootenay"))
+bc <- filter(popDevelopments, label %in% c("British Columbia", "Kootenay"))
 
 p <- ggplot(bc, aes(Age, Population, color = Gender)) +
   geom_line(aes(group = Year), alpha = 0.1) +
   geom_line(aes(frame = Year)) + 
-  facet_wrap(~development, ncol = 1, scales = "free_y")
+  facet_wrap(~label, ncol = 1, scales = "free_y")
 ggplotly(p) %>%
   animation_opts(100)
 

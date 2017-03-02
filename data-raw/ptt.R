@@ -22,9 +22,12 @@ for (i in seq_along(targets)) {
 
 # data at the municipal level only includes 3/8 development regions
 ptt <- readr::read_csv("data-raw/municipal-monthly.csv")
-devtools::use_data(ptt, overwrite = TRUE)
+# reshape/format after grabbing the ptt data dictionary
+#devtools::use_data(ptt, overwrite = TRUE)
 
-# why are there 2 records????
+# ---------------------------------------------------------------------------
+# Ummmm, why are there 2 records????
+library(dplyr)
 ptt %>% filter(Municipality == "Vancouver", trans_period == "2016-06-01")
 
 #> # A tibble: 2 × 31
@@ -38,53 +41,84 @@ ptt %>% filter(Municipality == "Vancouver", trans_period == "2016-06-01")
 #> #   sum_FMV <dbl>, mn_FMV <dbl>, md_FMV <dbl>, sum_PPT_paid <dbl>, md_PPT <dbl>, no_foreign <int>,
 #> #   sum_FMV_foreign <int>, mn_FMV_foreign <dbl>, md_FMV_foreign <int>, add_tax_paid <dbl>
 
+# ---------------------------------------------------------------------------
+
+
+# Use the data dictonary to provide better variable names & more contextual info
+# NOTE: I couldn't get ropensci/tabulizer installed on MAC OS 
+# (since it requires a specific version of Java :(), but this
+# runs on my Linux box.
+library(tabulizer)
+dic <- "https://catalogue.data.gov.bc.ca/dataset/9c9b8d35-d59b-436a-a350-f581ea71a798/resource/741c62e3-acf3-4a37-8647-083654448351/download/data-dictionary.pdf"
+#locate_areas(dic, widget = "native")
+tabs <- extract_tables(dic)
+
+#> List of 4
+#> $ : chr [1:12, 1:6] "Terms - Excel File" "" "DEVLOPMENT REGION" "REGIONAL DISTRICTS" ...
+#> $ : chr [1:15, 1:3] "Terms - Excel File" "RESIDENTIAL - MULTI-\rFAMILY (count)" "RESIDENTIAL - SINGLE \rFAMILY RESIDENTIAL (count)" "RESIDENTIAL - STRATA \rRESIDENTIAL (count)" ...
+#> $ : chr [1:11, 1:3] "Terms - Excel File" "FMV Median ($ median)" "PTT Paid ($ sum)" "PTT Paid Median ($ median)" ...
+#> $ : chr [1:6, 1:3] "Terms - Excel File" "mean)" "Under $1 million (count, \rforeign involvement \rtransactions)" "$1 million - $3 million \r(count, foreign involvement \rtransactions)" ...
+
+tabs[[1]] <- tabs[[1]][, 1:3]
+tabs <- lapply(tabs, function(x) tibble::as_tibble(x[-1, ]))
+pttDic <- setNames(
+  dplyr::bind_rows(tabs), 
+  c("description", "varname", "definition")
+)
+# remove "return" characters from each column
+pttDic[] <- lapply(pttDic, function(x) gsub("\\\r", "", x))
+# yes, we know they're counts
+pttDic$description <- sub("(count)", "", pttDic$description, fixed = TRUE)
+# trim leading/trailing white space
+pttDic$description <- gsub("^\\s+|\\s+$", "", pttDic$description)
+pttDic <- subset(pttDic, description != "")
+devtools::use_data(pttDic, overwrite = TRUE)
+
+
 library(tidyr)
 library(dplyr)
+
+# reshape and correct for the multiple records problem
+pttMunicipals <- ptt %>%
+  gather(variable, value, -trans_period, 
+         -DevelopmentRegion, -RegionalDistrict, -Municipality) %>%
+  group_by(Municipality, trans_period, variable) %>%
+  summarise(value = sum(value, na.rm = TRUE)) %>%
+  rename(label = Municipality)
+
+# use descriptions for variable names
+if (!exists("pttDic")) data("pttDic")
+varMap <- setNames(pttDic$varname, pttDic$description)
+for (i in seq_along(varMap)) {
+  idx <- pttMunicipals$variable %in% varMap[[i]]
+  pttMunicipals$variable[idx] <- names(varMap)[[i]]
+}
+
+devtools::use_data(pttMunicipals, overwrite = TRUE)
+
 library(crosstalk)
 library(plotly)
 
-# total counts
-d <- gather(ptt, variable, value, matches("^no_.*_tot$"))
-d$variable <- sub("_tot$", "", sub("^no_", "", d$variable))
+# IDEA: let shiny app users pick 1-5 variables of interest
+# and link time series to the map as well
+pttMunicipals <- pttMunicipals[pttMunicipals$variable %in% names(varMap)[6:10], ]
 
-# correction for the multiple records problem
-d <- d %>%
-  group_by(Municipality, trans_period, variable) %>%
-  summarise(value = sum(value, na.rm = TRUE))
+sd <- SharedData$new(pttMunicipals, ~Municipality)
 
-sd <- SharedData$new(d, ~Municipality)
-
-p <- ggplot(sd, aes(trans_period, value, color = Municipality)) +
+p <- ggplot(sd, aes(trans_period, value, group = Municipality)) +
   geom_line() +
-  facet_wrap(~variable, scales = "free_y", ncol = 1)
+  facet_wrap(~variable, scales = "free_y", ncol = 1) + 
+  theme(legend.position = "none") + labs(x = NULL, y = NULL)
 
-ggplotly(p, height = 600, tooltip = c("x", "colour")) %>% 
-  layout(dragmode = "zoom") %>%
-  highlight("plotly_click", "plotly_doubleclick")
-
-
-
-ptt %>% filter(Municipality == "Vancouver", trans_period == "2016-07-01") 
-
-
-# summary statistics of foreign fair market value
-d <- gather(ptt, variable, value, contains("foreign"))
-d$variable <- sub("_tot$", "", sub("^no_", "", d$variable))
-
-# correction for the multiple records problem
-d <- d %>%
-  group_by(Municipality, trans_period, variable) %>%
-  summarise(value = if (grepl("^no", variable)) sum(value, na.rm = TRUE) else mean(value, na.rm = TRUE))
-
-sd <- SharedData$new(d, ~Municipality)
-
-p <- ggplot(sd, aes(trans_period, value, color = Municipality)) +
-  geom_line() +
-  facet_wrap(~variable, scales = "free_y", ncol = 1)
-
-ggplotly(p, height = 600, tooltip = c("x", "colour")) %>% 
-  layout(dragmode = "zoom") %>%
-  highlight("plotly_click", "plotly_doubleclick")
-
-
-# IDEA look at difference in foreign/non-foreign?
+ggplotly(p, height = 600, tooltip = c("x", "group"), dynamicTicks = T) %>% 
+  highlight("plotly_click", "plotly_doubleclick") %>%
+  layout(
+    dragmode = "zoom", 
+    margin = list(l = 50),
+    annotations = list(
+      text = "Click to select a region\n(double-click to reset)",
+      x = 0.6, y = 0.9, xref = "paper", yref = "paper",
+      ax = 150, ay = -50
+    )
+  )
+  

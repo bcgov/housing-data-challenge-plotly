@@ -11,7 +11,7 @@ geoByTab <- function(stat = c("population", "dwelling")) {
     stat,
     population = c("developments", "districts"),
     dwelling = c("tracts"),
-    ptt = c("districts")
+    ptt = c("municipals")
   )
   geoAll()[geoAll() %in% geos]
 }
@@ -27,6 +27,11 @@ geoAll <- function() {
   )
 }
 
-shared_data <- function(d) {
-  SharedData$new(d, ~label, "Selected region")
+# set a sensible group name default....
+shared_data <- function(d, var = ~label) {
+  SharedData$new(d, var, "Selected region")
+}
+
+"%||%" <- function(x, y) {
+  if (!length(x)) y else x
 }
