@@ -113,7 +113,7 @@ d <- readr::read_csv(
 dbc <- d[ d[[2]] %in% "British Columbia", ]
 
 # sensible naming and downsizing
-popCensusTracts <- dbc %>%
+dwellTracts <- dbc %>%
   rename(
     label = `Geographic code`,
     pop16 = `Population, 2016`,
@@ -132,7 +132,7 @@ popCensusTracts <- dbc %>%
   ))
 
 
-devtools::use_data(popCensusTracts, overwrite = TRUE)
+devtools::use_data(dwellTracts, overwrite = TRUE)
 
 
 # link 

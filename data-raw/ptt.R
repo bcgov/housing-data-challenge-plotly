@@ -78,23 +78,56 @@ devtools::use_data(pttDic, overwrite = TRUE)
 library(tidyr)
 library(dplyr)
 
-# reshape and correct for the multiple records problem
-pttMunicipals <- ptt %>%
-  gather(variable, value, -trans_period, 
-         -DevelopmentRegion, -RegionalDistrict, -Municipality) %>%
-  group_by(Municipality, trans_period, variable) %>%
-  summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = Municipality)
+pttMelt <- gather(
+  ptt, variable, value, -trans_period, 
+  -DevelopmentRegion, -RegionalDistrict, -Municipality
+)
 
 # use descriptions for variable names
-if (!exists("pttDic")) data("pttDic")
-varMap <- setNames(pttDic$varname, pttDic$description)
-for (i in seq_along(varMap)) {
-  idx <- pttMunicipals$variable %in% varMap[[i]]
-  pttMunicipals$variable[idx] <- names(varMap)[[i]]
+recode_variable <- function(d) {
+  if (!exists("pttDic")) data("pttDic")
+  varMap <- setNames(pttDic$varname, pttDic$description)
+  for (i in seq_along(varMap)) {
+    idx <- d$variable %in% varMap[[i]]
+    d$variable[idx] <- names(varMap)[[i]]
+  }
+  d
 }
 
+# NOTE: 'corrects' the multiple records problem
+pttMunicipals <- pttMelt %>%
+  group_by(Municipality, trans_period, variable) %>%
+  summarise(value = sum(value, na.rm = TRUE)) %>%
+  rename(label = Municipality) %>%
+  recode_variable()
+
+pttMunicipals <- recode_variable(pttMunicipals)
+# TODO: fix concordance!
+concordance <- readr::read_csv(
+  "https://raw.githubusercontent.com/bcgov/housing-data-visualization-project/master/data/geography-concordance.csv"
+)
 devtools::use_data(pttMunicipals, overwrite = TRUE)
+
+
+# reshape and correct for the multiple records problem
+pttDevelopments <- pttMelt %>%
+  group_by(DevelopmentRegion, trans_period, variable) %>%
+  summarise(value = sum(value, na.rm = TRUE)) %>%
+  rename(label = DevelopmentRegion) %>%
+  recode_variable()
+
+devtools::use_data(pttDevelopments, overwrite = TRUE)
+
+pttDistricts <- pttMelt %>%
+  group_by(RegionalDistrict, trans_period, variable) %>%
+  summarise(value = sum(value, na.rm = TRUE)) %>%
+  rename(label = RegionalDistrict) %>%
+  recode_variable()
+
+devtools::use_data(pttDistricts, overwrite = TRUE)
+
+
+
 
 library(crosstalk)
 library(plotly)
