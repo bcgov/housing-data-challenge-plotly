@@ -142,7 +142,10 @@ launch <- function(prompt = interactive()) {
         municipals = geoMunicipals,
         tracts = geoCensusTracts
       )
-      visDat <- get(paste0(input$currentTab, simpleCap(input$regionType)))
+      visDat <- tryCatch(
+        get(paste0(input$currentTab, simpleCap(input$regionType))),
+        error = function(e) data.frame()
+      )
       # keep only the polygons that reside in the data we're visualizing
       if (!is.null(visDat) && "label" %in% intersect(names(geoDat), names(visDat))) {
         geoDat <- semi_join(geoDat, visDat, by = "label")
@@ -159,7 +162,7 @@ launch <- function(prompt = interactive()) {
         districts = popDistricts
       )
       # always show overall BC population
-      d[d$label %in% c(rv$regions, "British Columbia"), ]
+      d[d$label %in% c(rv$regions, "BRITISH COLUMBIA"), ]
     })
     
     getPttData <- reactive({
@@ -322,7 +325,10 @@ launch <- function(prompt = interactive()) {
     getCreateData <- reactive({
       # TODO: how to provide wide forms of data?
       validateInput(input$dataType)
-      d <- get(paste0(input$dataType, simpleCap(input$regionType)))
+      d <- tryCatch(
+        get(paste0(input$dataType, simpleCap(input$regionType))),
+        error = function(e) data.frame()
+      )
       # if this data has been "melted", spread it back
       if (all(c("value", "variable") %in% names(d))) {
         d <- tidyr::spread(d, variable, value)
