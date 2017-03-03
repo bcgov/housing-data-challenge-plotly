@@ -26,6 +26,6 @@ make
 
 ## Example interactivity
 
-<a href="https://imgur.com/WvSQ8ze">
-  <img src="https://imgur.com/WvSQ8ze.gif" title="source: imgur.com" />
+<a href="http://imgur.com/WvSQ8ze">
+  <img src="http://imgur.com/WvSQ8ze.gif" title="source: imgur.com" />
 </a>
