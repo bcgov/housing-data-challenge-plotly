@@ -16,7 +16,15 @@ knitr::opts_chunk$set(
 
 ## Running the app
 
-To run the app on your machine, make sure you have [R](https://cran.r-project.org/) installed, then from your terminal:
+If you have a working [docker environment](https://docs.docker.com/engine/):
+
+```shell
+git clone https://github.com/cpsievert/simple-R-shiny.git
+cd simple-R-shiny
+./dev.sh
+```
+
+Otherwise, make sure you have [R](https://cran.r-project.org/) installed, then from your terminal:
 
 ```shell
 git clone https://github.com/cpsievert/housing-data-challenge-plotly.git
@@ -24,15 +32,5 @@ cd housing-data-challenge-plotly
 make
 ```
 
-Alternatively, if you don't need/want to clone the github repo, then from your R console:
+(**Note:** The `make` command assumes you already have a number of non-standard system libraries. Most, if not all of them, are listed in the `before_install` step [here](https://github.com/edzer/sfr/blob/master/.travis.yml))
 
-```r
-if (!require(devtools)) install.packages("devtools")
-devtools::install_github("cpsievert/housing-data-challenge-plotly")
-bcviz::launch()
-```
-
-
-**Note for Linux users:**
-
-This app depends on the R package **sf**, which has a number of system requirements. You may need to replicate some of the `before_install:` recipes in its [.travis.yml file](https://github.com/edzer/sfr/blob/master/.travis.yml) to successfully install it.
