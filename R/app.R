@@ -55,8 +55,8 @@ launch <- function(prompt = interactive()) {
         selectizeInput(
           "pttVars", 
           label = "Choose variables:", 
-          choices = factor(pttVars, levels = defaultPttVars()), 
-          selected = factor(defaultPttVars(), levels = defaultPttVars()), 
+          choices = pttVars, 
+          selected = defaultPttVars(), 
           multiple = TRUE,
           width = "100%",
           options = list(maxItems = 8)
@@ -73,7 +73,7 @@ launch <- function(prompt = interactive()) {
       ),
       tabPanel(
         "Dwelling", value = "dwell", 
-        plotlyOutput("dwell", height = 600)
+        plotlyOutput("dwell", height = 500)
       ),
       tabPanel(
         title = "Property Transfer", value = "ptt",
@@ -145,6 +145,7 @@ launch <- function(prompt = interactive()) {
         districts = pttDistricts,
         municipals = pttMunicipals
       )
+      validateThing(input$pttVars)
       # we can only realistically show a subset of the variables
       d2 <- d[d$variable %in% input$pttVars, ]
       # ensure the ordering of panels reflects the input ordering
