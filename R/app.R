@@ -15,18 +15,30 @@ launch <- function(prompt = interactive()) {
   data("geoDistricts", package = "bcviz")
   data("geoMunicipals", package = "bcviz")
   data("geoCensusTracts", package = "bcviz")
+  geoDevelopments$label <- toupper(geoDevelopments$label)
+  geoDistricts$label <- toupper(geoDistricts$label)
+  geoMunicipals$label <- toupper(geoMunicipals$label)
+  geoCensusTracts$label <- toupper(geoCensusTracts$label)
   
   # population estimates
   data("popDevelopments", package = "bcviz")
   data("popDistricts", package = "bcviz")
+  popDevelopments$label <- toupper(popDevelopments$label)
+  popDistricts$label <- toupper(popDistricts$label)
   
   # dwelling and population in 2011/2016
   data("dwellTracts", package = "bcviz")
+  dwellTracts$label <- toupper(dwellTracts$label)
   
   # property tax transfer
   data("pttDevelopments", package = "bcviz")
   data("pttDistricts", package = "bcviz")
   data("pttMunicipals", package = "bcviz")
+  pttDevelopments$label <- toupper(pttDevelopments$label)
+  pttDistricts$label <- toupper(pttDistricts$label)
+  pttMunicipals$label <- toupper(pttMunicipals$label)
+  
+  
   pttVars <- unique(
     c(pttMunicipals$variable, pttDistricts$variable, pttMunicipals$variable)
   )
@@ -61,6 +73,14 @@ launch <- function(prompt = interactive()) {
           width = "100%",
           options = list(maxItems = 8)
         )
+      ),
+      conditionalPanel(
+        "input.currentTab == 'create'",
+        uiOutput("dataType"),
+        fluidRow(
+          actionButton("buttonCreate", "Create", icon = icon("line-chart")),
+          downloadButton("downloadData", "Download", icon = icon("download"))
+        )
       )
     ),
     
@@ -78,6 +98,10 @@ launch <- function(prompt = interactive()) {
       tabPanel(
         title = "Property Transfer", value = "ptt",
         plotlyOutput("ptt", height = 600)
+      ),
+      tabPanel(
+        title = "Create", value = "create",
+        dataTableOutput("createDataTable")
       )
     ))
     
@@ -104,13 +128,13 @@ launch <- function(prompt = interactive()) {
           input$currentTab,
           population = "developments",
           dwelling = "tracts",
-          ptt = "municipals"
+          ptt = "developments"
         )
       )
     })
     
     getGeoData <- reactive({
-      validateThing(input$regionType)
+      validateInput(input$regionType)
       geoDat <- switch(
         input$regionType,
         developments = geoDevelopments,
@@ -123,11 +147,12 @@ launch <- function(prompt = interactive()) {
       if (!is.null(visDat) && "label" %in% intersect(names(geoDat), names(visDat))) {
         geoDat <- semi_join(geoDat, visDat, by = "label")
       }
+      # TODO: join with visDat to populate informative tooltips!
       shared_data(geoDat)
     })
     
     getPopData <- reactive({
-      validateThing(input$regionType)
+      validateInput(input$regionType)
       d <- switch(
         input$regionType,
         developments = popDevelopments,
@@ -138,14 +163,14 @@ launch <- function(prompt = interactive()) {
     })
     
     getPttData <- reactive({
-      validateThing(input$regionType)
+      validateInput(input$regionType)
       d <- switch(
         input$regionType,
         developments = pttDevelopments,
         districts = pttDistricts,
         municipals = pttMunicipals
       )
-      validateThing(input$pttVars)
+      validateInput(input$pttVars)
       # we can only realistically show a subset of the variables
       d2 <- d[d$variable %in% input$pttVars, ]
       # ensure the ordering of panels reflects the input ordering
@@ -192,7 +217,7 @@ launch <- function(prompt = interactive()) {
       d <- getPopData()
       
       # not completely sure why this is necessary...
-      validateThing(d$label)
+      validateInput(d$label)
       
       p <- ggplot(d, aes(Age, Population, color = Gender)) +
         geom_line(aes(group = Year), alpha = 0.1) +
@@ -208,7 +233,7 @@ launch <- function(prompt = interactive()) {
     output$dwell <- renderPlotly({
       
       # TODO: more region types?
-      pd <- shared_data(popCensusTracts)
+      pd <- shared_data(dwellTracts)
       
       p <- ggplot(pd, aes(x = pop16 / area, y = pop16 / dwell16)) + 
         geom_point(aes(text = txt), alpha = 0.2) + 
@@ -232,7 +257,7 @@ launch <- function(prompt = interactive()) {
       d <- getPttData()
       
       # not completely sure why this is necessary...
-      #validateThing(d$variable)
+      #validateInput(d$variable)
       
       p <- ggplot(d, aes(trans_period, value, group = label)) +
         geom_line() +
@@ -282,7 +307,46 @@ launch <- function(prompt = interactive()) {
         fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
     })
     
-  }
+    
+    output$dataType <- renderUI({
+      selectInput(
+        "dataType", "Choose a dataset (depends on current resolution)", 
+        choices = dataByResolution(input$regionType)
+      )
+    })
+    
+    # ---------------------------------------------------------------------
+    # Create Tab
+    # ---------------------------------------------------------------------
+    
+    getCreateData <- reactive({
+      # TODO: how to provide wide forms of data?
+      validateInput(input$dataType)
+      d <- get(paste0(input$dataType, simpleCap(input$regionType)))
+      # if this data has been "melted", spread it back
+      if (all(c("value", "variable") %in% names(d))) {
+        d <- tidyr::spread(d, variable, value)
+      }
+      d
+    })
+    
+    # post to plotly's create page
+    observeEvent(input$buttonCreate, {
+      print(upload_grid(getCreateData(), filename = new_id()))
+    })
+    
+    output$createDataTable <- renderDataTable({
+      getCreateData()
+    })
+    
+    output$downloadData <- downloadHandler(
+      filename = function() { paste0(input$dataType, simpleCap(input$regionType), '.csv') },
+      content = function(file) {
+        write.csv(getCreateData(), file, row.names = FALSE)
+      }
+    )
+    
+  } # end of server() function
   
   shinyApp(
     ui, server, options = list(launch.browser = prompt)
@@ -290,7 +354,7 @@ launch <- function(prompt = interactive()) {
 }
 
 
-validateThing <- function(type) {
+validateInput <- function(type) {
   validate(
     need(type, "Loading..."),
     errorClass = "region"

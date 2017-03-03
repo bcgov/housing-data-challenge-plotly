@@ -14,7 +14,8 @@ Imports:
   tibble,
   shiny,
   ggplot2,
-  crosstalk
+  crosstalk,
+  DT
 Suggests:
   curl,
   rvest,
@@ -25,4 +26,4 @@ Suggests:
 RoxygenNote: 6.0.1
 Remotes:
   cpsievert/leaflet@carson/feature/plotly,
-  ropensci/plotly
+  ropensci/plotly@feature/APIv2

@@ -5,4 +5,6 @@
 #' @import dplyr
 #' @import ggplot2
 #' @import crosstalk
+#' @import DT
+#' @import tidyr
 NULL

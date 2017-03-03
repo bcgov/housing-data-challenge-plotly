@@ -12,7 +12,7 @@ cd simple-R-shiny
 ./dev.sh
 ```
 
-The application is then available at <http://0.0.0.0:3838/>.
+The application is then available at <http://0.0.0.0:3838/>. You can also run the app from dockerhub with: `docker run -p 3838:3838 cpsievert/simple-r-shiny`
 
 Otherwise, make sure you have [R](https://cran.r-project.org/) installed, then from your terminal:
 
