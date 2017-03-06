@@ -108,7 +108,7 @@ recode_variable <- function(d) {
 pttMunicipals <- pttMelt %>%
   group_by(Municipality, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = Municipality) %>%
+  mutate(label = toupper(Municipality)) %>%
   recode_variable()
 
 devtools::use_data(pttMunicipals, overwrite = TRUE)
@@ -153,7 +153,7 @@ pttMelt <- ptt %>%
 pttDistricts <- pttMelt %>%
   group_by(RegionalDistrict, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = RegionalDistrict) %>%
+  mutate(label = toupper(RegionalDistrict)) %>%
   recode_variable()
 
 devtools::use_data(pttDistricts, overwrite = TRUE)
@@ -171,7 +171,7 @@ pttMelt <- ptt %>%
 pttDevelopments <- pttMelt %>%
   group_by(DevelopmentRegion, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = DevelopmentRegion) %>%
+  mutate(label = toupper(DevelopmentRegion)) %>%
   recode_variable()
 
 devtools::use_data(pttDevelopments, overwrite = TRUE)

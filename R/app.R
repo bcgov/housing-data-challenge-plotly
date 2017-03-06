@@ -15,30 +15,20 @@ launch <- function(prompt = interactive()) {
   data("geoDistricts", package = "bcviz")
   data("geoMunicipals", package = "bcviz")
   data("geoCensusTracts", package = "bcviz")
-  geoDevelopments$label <- toupper(geoDevelopments$label)
-  geoDistricts$label <- toupper(geoDistricts$label)
-  geoMunicipals$label <- toupper(geoMunicipals$label)
-  geoCensusTracts$label <- toupper(geoCensusTracts$label)
   
   # population estimates
   data("popDevelopments", package = "bcviz")
   data("popDistricts", package = "bcviz")
-  popDevelopments$label <- toupper(popDevelopments$label)
-  popDistricts$label <- toupper(popDistricts$label)
   
   # dwelling and population in 2011/2016
   data("dwellTracts", package = "bcviz")
-  dwellTracts$label <- toupper(dwellTracts$label)
   
   # property tax transfer
   data("pttDevelopments", package = "bcviz")
   data("pttDistricts", package = "bcviz")
   data("pttMunicipals", package = "bcviz")
-  pttDevelopments$label <- toupper(pttDevelopments$label)
-  pttDistricts$label <- toupper(pttDistricts$label)
-  pttMunicipals$label <- toupper(pttMunicipals$label)
   
-  
+  # collect all unique ptt vars and provide a sensible ordering
   pttVars <- unique(
     c(pttMunicipals$variable, pttDistricts$variable, pttMunicipals$variable)
   )
@@ -51,7 +41,7 @@ launch <- function(prompt = interactive()) {
   # determine some global bounds
   bb <- st_bbox(geoDistricts)
   
-  # let leaflet know about persistent selection
+  # inform leaflet about persistent selection
   options(persistent = TRUE)
   
   # widget to change the height of the plot
