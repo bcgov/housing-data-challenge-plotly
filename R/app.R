@@ -72,8 +72,13 @@ launch <- function(prompt = interactive()) {
     column(
       4, leafletOutput("map", height = 450),
       fluidRow(
-        # available region types depend on the current panel...
-        column(6, uiOutput("regionTypes")),  
+        column(
+          # Assuming property transfer is the default tab
+          6, selectInput(
+            "regionType", "Choose a resolution", 
+            choices = geoByTab("ptt"), selected = "developments"
+          )
+        ),  
         column(6, plotHeightInput)
       ),
       conditionalPanel(
@@ -133,20 +138,6 @@ launch <- function(prompt = interactive()) {
       data = NULL
     )
     
-    output$regionTypes <- renderUI({
-      selectInput(
-        "regionType", 
-        label = "Choose a resolution:", 
-        choices = geoByTab(input$currentTab),
-        selected = switch(
-          input$currentTab,
-          population = "developments",
-          dwelling = "tracts",
-          ptt = "developments"
-        )
-      )
-    })
-    
     getGeoData <- reactive({
       validateInput(input$regionType)
       geoDat <- switch(
@@ -175,8 +166,14 @@ launch <- function(prompt = interactive()) {
         developments = popDevelopments,
         districts = popDistricts
       )
+      if (is.null(d)) return(NULL)
       # always show overall BC population
       d[d$label %in% c(rv$regions, "BRITISH COLUMBIA"), ]
+    })
+    
+    getDwellData <- reactive({
+      # TODO: more region types?
+      shared_data(dwellTracts)
     })
     
     getPttData <- reactive({
@@ -187,6 +184,8 @@ launch <- function(prompt = interactive()) {
         districts = pttDistricts,
         municipals = pttMunicipals
       )
+      # it could be that we don't have a valid region type yet...
+      if (is.null(d)) return(NULL)
       validateInput(input$pttVars)
       # we can only realistically show a subset of the variables
       d2 <- d[d$variable %in% input$pttVars, ]
@@ -194,6 +193,23 @@ launch <- function(prompt = interactive()) {
       d2$variable <- factor(d2$variable, levels = input$pttVars)
       shared_data(d2)
     })
+    
+    # change region type options when switching tabs
+    observeEvent(input$currentTab, {
+      
+      updateSelectInput(
+        session = session, inputId = "regionType", label = "Choose a resolution",
+        choices = geoByTab(input$currentTab),
+        selected = switch(
+          input$currentTab,
+          population = "developments",
+          dwelling = "tracts",
+          ptt = "developments"
+        )
+      )
+      
+    })
+    
     
     output$map <- renderLeaflet({
       leaflet() %>%
@@ -207,7 +223,7 @@ launch <- function(prompt = interactive()) {
     # update reactive values upon clicking the map and modify opacity sensibly
     observeEvent(input$map_shape_click, {
       
-      # currently regions are only selectable on the population page
+      # "clickable regions" only on the population page
       if (identical(input$currentTab, "population")) {
         # TODO: clicking on an already clicked region should remove it...
         rv$regions <- c(rv$regions, input$map_shape_click)
@@ -233,10 +249,9 @@ launch <- function(prompt = interactive()) {
     
     output$pop <- renderPlotly({
       
+      # get and validate that data is ready
       d <- getPopData()
-      
-      # not completely sure why this is necessary...
-      validateInput(d$label)
+      validateInput(d)
       
       p <- ggplot(d, aes(Age, Population, color = Gender)) +
         geom_line(aes(group = Year), alpha = 0.1) +
@@ -251,10 +266,14 @@ launch <- function(prompt = interactive()) {
     
     output$dwell <- renderPlotly({
       
-      # TODO: more region types?
-      pd <- shared_data(dwellTracts)
+      # clear any previous "crosstalk selections"
+      input$currentTab
       
-      p <- ggplot(pd, aes(x = pop16 / area, y = pop16 / dwell16)) + 
+      # get and validate that data is ready
+      d <- getDwellData()
+      validateInput(d)
+      
+      p <- ggplot(d, aes(x = pop16 / area, y = pop16 / dwell16)) + 
         geom_point(aes(text = txt), alpha = 0.2) + 
         labs(x = "People per square km", y = "People per dwelling")
         
@@ -273,10 +292,12 @@ launch <- function(prompt = interactive()) {
     
     output$ptt <- renderPlotly({
       
-      d <- getPttData()
+      # clear any previous "crosstalk selections"
+      input$currentTab
       
-      # not completely sure why this is necessary...
-      #validateInput(d$variable)
+      # get and validate that data is ready
+      d <- getPttData()
+      validateInput(d)
       
       p <- ggplot(d, aes(trans_period, value, group = label)) +
         geom_line() +
@@ -306,7 +327,7 @@ launch <- function(prompt = interactive()) {
       # selected regions can't persist when changing resolution...
       # well, maybe when increasing the resolution?
       rv$regions <- NULL
-    
+      
       # dwelling vis has different opacity settings...
       isDwelling <- identical(input$currentTab, "dwelling")
       
@@ -330,19 +351,19 @@ launch <- function(prompt = interactive()) {
     })
     
     observeEvent(input$currentTab, {
-      
+
       map <- leafletProxy("map", session) %>%
         clearGroup("label")
-      
+
       if (identical(input$currentTab, "population")) {
         leafletProxy("map", session) %>%
           addLabelOnlyMarkers(
             -120, 56.89769, group = "label",
             label = HTML("Click on a region <br /> to select it"),
-            labelOptions = labelOptions(noHide = T, textsize='15px') 
+            labelOptions = labelOptions(noHide = TRUE, textsize = '15px')
           )
       }
-      
+
     })
     
     
