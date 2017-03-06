@@ -20,7 +20,7 @@ geoByTab <- function(stat = c("pop", "dwell", "ptt")) {
   stat <- match.arg(stat, stat)
   geos <- switch(
     stat,
-    pop = c("developments", "districts"),
+    population = c("developments", "districts"),
     dwell = c("tracts"),
     ptt = c("developments", "districts", "municipals")
   )
@@ -60,14 +60,13 @@ dataAll <- function() {
 }
 
 defaultPttVars <- function() {
-  f <- c(
+  c(
     "Total Market Transactions",
     "PTT Paid ($ sum)",
     "Foreign Involvement Transactions",
     "FMV sum of Foreign Involvement Transactions ($ sum)",
     "Additional Tax Paid ($ sum)"
   )
-  factor(f, levels = f)
 }
 
 # set a sensible group name default....

@@ -42,6 +42,8 @@ launch <- function(prompt = interactive()) {
   pttVars <- unique(
     c(pttMunicipals$variable, pttDistricts$variable, pttMunicipals$variable)
   )
+  pttVars <- c(defaultPttVars(), setdiff(pttVars, defaultPttVars()))
+  
   
   # base theme for ggplot2 derived plots
   theme_set(theme_BCStats())
@@ -52,6 +54,15 @@ launch <- function(prompt = interactive()) {
   # let leaflet know about persistent selection
   options(persistent = TRUE)
   
+  # widget to change the height of the plot
+  plotHeightInput <- conditionalPanel(
+    "input.currentTab != 'create'",
+    sliderInput(
+      "plotHeight", "Height of plot", 
+      value = 600, min = 100, max = 3000, step = 25
+    )
+  )
+  
   # user interface
   ui <- fluidPage(fluidRow(
     
@@ -60,15 +71,18 @@ launch <- function(prompt = interactive()) {
       
     column(
       4, leafletOutput("map", height = 450),
-      # available region types depend on the current panel...
-      uiOutput("regionTypes"),
+      fluidRow(
+        # available region types depend on the current panel...
+        column(6, uiOutput("regionTypes")),  
+        column(6, plotHeightInput)
+      ),
       conditionalPanel(
         "input.currentTab == 'ptt'",
         selectizeInput(
           "pttVars", 
           label = "Choose variables:", 
           choices = pttVars, 
-          selected = defaultPttVars(), 
+          selected = factor(defaultPttVars(), levels = pttVars), 
           multiple = TRUE,
           width = "100%",
           options = list(maxItems = 8)
@@ -88,11 +102,11 @@ launch <- function(prompt = interactive()) {
     column(
       8, navbarPage(title = "BC Housing Market", id = "currentTab", selected = "ptt",
       tabPanel(
-        "Population", value = "pop", #icon = tags$icon("question-circle"),
+        "Population", value = "population", #icon = tags$icon("question-circle"),
         plotlyOutput("pop", height = 600) 
       ),
       tabPanel(
-        "Dwelling", value = "dwell", 
+        "Dwelling", value = "dwelling", 
         plotlyOutput("dwell", height = 500)
       ),
       tabPanel(
@@ -183,7 +197,9 @@ launch <- function(prompt = interactive()) {
     
     output$map <- renderLeaflet({
       leaflet() %>%
-        addTiles('http://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png') %>%
+        addTiles(
+          'http://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.png'
+        ) %>%
         # TODO: Why does setView() lead to console errors?
         fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
     })
@@ -191,8 +207,8 @@ launch <- function(prompt = interactive()) {
     # update reactive values upon clicking the map and modify opacity sensibly
     observeEvent(input$map_shape_click, {
       
-      # don't do anything if this is the dwelling tab
-      if (!identical(input$currentTab, "dwelling")) {
+      # currently regions are only selectable on the population page
+      if (identical(input$currentTab, "population")) {
         # TODO: clicking on an already clicked region should remove it...
         rv$regions <- c(rv$regions, input$map_shape_click)
         
@@ -268,7 +284,10 @@ launch <- function(prompt = interactive()) {
         theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
         labs(x = NULL, y = NULL)
       
-      ggplotly(p, height = 600, tooltip = c("x", "group"), dynamicTicks = T) %>% 
+      p %>%
+        ggplotly(
+          height = input$plotHeight, tooltip = c("x", "group"), dynamicTicks = TRUE
+        ) %>% 
         highlight("plotly_click", "plotly_doubleclick", dynamic = TRUE) %>%
         layout(
           dragmode = "zoom", 
@@ -310,8 +329,25 @@ launch <- function(prompt = interactive()) {
         fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
     })
     
+    observeEvent(input$currentTab, {
+      
+      map <- leafletProxy("map", session) %>%
+        clearGroup("label")
+      
+      if (identical(input$currentTab, "population")) {
+        leafletProxy("map", session) %>%
+          addLabelOnlyMarkers(
+            -120, 56.89769, group = "label",
+            label = HTML("Click on a region <br /> to select it"),
+            labelOptions = labelOptions(noHide = T, textsize='15px') 
+          )
+      }
+      
+    })
+    
     
     output$dataType <- renderUI({
+      validateInput(input$regionType)
       selectInput(
         "dataType", "Choose a dataset (depends on current resolution)", 
         choices = dataByResolution(input$regionType)
