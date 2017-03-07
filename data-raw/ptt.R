@@ -174,4 +174,21 @@ pttDevelopments <- pttMelt %>%
   mutate(label = toupper(DevelopmentRegion)) %>%
   recode_variable()
 
+# ---------------------------------------------------------------------------
+# manually fix label mistmatch
+# ---------------------------------------------------------------------------
+
+setdiff(pttDevelopments$label, geoDevelopments$label)
+#> [1] "REST OF PROVINCE" "THOMPSON/OKANAGAN" "UNKNOWN/RURAL"   
+unique(geoDevelopments$label)
+#> [1] "KOOTENAY"               "THOMPSON OKANAGAN"      "MAINLAND/SOUTHWEST"     "VANCOUVER ISLAND/COAST"
+#> [5] "CARIBOO"                "NORTH COAST"            "NECHAKO"                "NORTHEAST"     
+
+pttDevelopments <- pttDevelopments %>%
+  mutate(
+    label = recode(
+      label, "THOMPSON/OKANAGAN" = "THOMPSON OKANAGAN"
+    )
+  )
+
 devtools::use_data(pttDevelopments, overwrite = TRUE)

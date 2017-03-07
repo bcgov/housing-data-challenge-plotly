@@ -17,7 +17,23 @@ unzip(target, exdir = "data-raw/tmp")
 d <- st_read("data-raw/tmp/DR.shp", stringsAsFactors = FALSE)
 d2 <- st_simplify(d, dTolerance = 350)
 geoDevelopments <- mutate(st_transform(d2, 4326), label = toupper(DR_NAME))
+
+# Merge North Coast and Nechako for ptt data
+bleh <- geoDevelopments %>% 
+  filter(label %in% c("NORTH COAST", "NECHAKO")) %>% 
+  st_combine() %>% 
+  st_union()
+
+blehdf <- st_sf(
+  DR_NUM = NA, DR_NAME = NA, DR = NA, 
+  label = "NECHAKO & NORTH COAST", geometry = st_geometry(bleh)
+)
+
+geoDevelopments <- rbind(geoDevelopments, blehdf)
 devtools::use_data(geoDevelopments, overwrite = TRUE)
+
+
+
 
 # ---------------------------------------------------------------------------
 # obtain/simplify shape files for the 28 regional districts
