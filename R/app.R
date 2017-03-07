@@ -297,17 +297,31 @@ launch <- function(prompt = interactive()) {
       d <- getDwellData()
       validateInput(d)
       
-      p <- ggplot(d, aes(x = pop16 / area, y = pop16 / dwell16)) + 
+      p1 <- ggplot(d, aes(x = pop16 / area, y = pop16 / dwell16)) + 
         geom_point(aes(text = txt), alpha = 0.2) + 
         labs(x = "People per square km", y = "People per dwelling")
+      
+      gg1 <- ggplotly(p1, height = input$height, tooltip = "text")
+      
+      p2 <- ggplot(d) +
+        geom_segment(
+          alpha = 0.2,
+          aes(x = "2011", xend = "2016", y = pop11, yend = pop16, group = label),
+        ) +
+        geom_point(aes(x = "2011", y = pop11, text = txt), size = .5, alpha = 0.2) +
+        geom_point(aes(x = "2016", y = pop16, text = txt), size = 1, alpha = 0.2) +
+        labs(x = NULL, y = "Population")
+      
+      gg2 <- ggplotly(p2, height = input$height, tooltip = "text")
         
-      # TODO: color by difference in population (11 to 16)!?!
-      ggplotly(p, height = input$height, tooltip = "text") %>% 
+      subplot(
+        gg1, gg2, titleX = TRUE, titleY = TRUE, nrows = 2, margin = c(0, 0, .1, .1)
+      ) %>% 
         layout(
           dragmode = "select",
           annotations = list(
             text = "Brush points to \n highlight tracts \n (double-click to reset)",
-            x = 0.5, y = 0.5, xref = "paper", yref = "paper",
+            x = 0.5, y = 0.75, xref = "paper", yref = "paper",
             ax = 100, ay = -100
           )
         ) %>%
