@@ -63,6 +63,7 @@ defaultPttVars <- function(type = c("foreign", "overall", "commercial", "residen
   foreign <- c(
     "Total Market Transactions",
     "Foreign Involvement Transactions",
+    "FMV Average ($ mean)",
     "FMV Average of Foreign Involvement Transactions ($ mean)",
     "PTT Paid ($ sum)",
     "Additional Tax Paid ($ sum)"

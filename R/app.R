@@ -234,6 +234,8 @@ launch <- function(prompt = interactive()) {
     # modify the items defining the ptt variables to visualize 
     observeEvent(input$pttVisType, {
       
+      redrawRegions()
+      
       vars <- defaultPttVars(input$pttVisType)
       updateSelectizeInput(
         session = session, inputId = "pttVars",
@@ -324,10 +326,10 @@ launch <- function(prompt = interactive()) {
         geom_point(aes(x = "2016", y = pop16, text = txt), size = 1, alpha = 0.2) +
         labs(x = NULL, y = "Population")
       
-      gg2 <- ggplotly(p2, height = input$height, tooltip = "text")
+      gg2 <- ggplotly(p2, tooltip = "text")
         
       subplot(
-        gg1, gg2, titleX = TRUE, titleY = TRUE, nrows = 2, margin = c(0, 0, .1, .1)
+        gg1, gg2, titleX = TRUE, titleY = TRUE, nrows = 2, margin = c(0, 0, .05, .05)
       ) %>% 
         layout(
           dragmode = "select",
@@ -352,7 +354,7 @@ launch <- function(prompt = interactive()) {
       p <- ggplot(d, aes(trans_period, value, group = label, text = txt)) +
         geom_line() +
         facet_wrap(~variable, scales = "free_y", ncol = 1) + 
-        theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
+        theme(legend.position = "none", axis.text.x = element_text(angle = 15)) + 
         labs(x = NULL, y = NULL)
       
       ggplotly(p, height = input$height, tooltip = "text", dynamicTicks = TRUE) %>% 
