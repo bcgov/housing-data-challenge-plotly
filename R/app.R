@@ -322,26 +322,23 @@ launch <- function(prompt = interactive()) {
         highlight("plotly_click", "plotly_doubleclick", dynamic = TRUE) %>%
         layout(
           dragmode = "zoom", 
-          margin = list(l = 100, b = 100, t = 40),
+          margin = list(l = 100, b = 100, t = 45),
           annotations = list(
             text = "Click to select a region (double-click to reset)",
             x = 0.15, y = 0.97, xref = "paper", yref = "paper",
-            ax = -10, ay = -43
+            ax = 20, ay = -50
           )
         )
     })
     
-    
-    
-    # out with the old polygons, in with the new
     observeEvent(input$regionType, {
       redrawRegions()
     })
     
     observeEvent(input$currentTab, {
-
       redrawRegions()
       
+      # draw visual clue letting user know they may click regions 
       if (identical(input$currentTab, "population")) {
         leafletProxy("map", session) %>%
           addLabelOnlyMarkers(
@@ -356,6 +353,7 @@ launch <- function(prompt = interactive()) {
 
     })
     
+    # out with the old polygons, in with the new
     redrawRegions <- function() {
       # selected regions can't persist when changing resolution...
       # well, maybe when increasing the resolution?
@@ -383,7 +381,7 @@ launch <- function(prompt = interactive()) {
         fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
     }
     
-    
+    # TODO: use updateSelectInput()?
     output$dataType <- renderUI({
       validateInput(input$regionType)
       selectInput(
