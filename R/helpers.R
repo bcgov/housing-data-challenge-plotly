@@ -74,7 +74,7 @@ defaultPttVars <- function(type = c("foreign", "overall", "commercial", "residen
     "FARM TOTAL",
     "OTHER/UNKNOWN TOTAL"
   )
-  commerical <- c(
+  commercial <- c(
     'COMMERCIAL TOTAL',
     'COMMERCIAL - COMMERCE', 
     'COMMERCIAL - STRATA NON-RESIDENTIAL',  
@@ -95,7 +95,7 @@ defaultPttVars <- function(type = c("foreign", "overall", "commercial", "residen
     match.arg(type),
     foreign = foreign,
     overall = overall,
-    commerical = commerical,
+    commercial = commercial,
     residential = residential
    )
 }
