@@ -40,7 +40,6 @@ launch <- function(prompt = interactive()) {
   pttVars <- unique(
     c(pttMunicipals$variable, pttDistricts$variable, pttMunicipals$variable)
   )
-  pttVars <- c(defaultPttVars(), setdiff(pttVars, defaultPttVars()))
   
   # base theme for ggplot2 derived plots
   theme_set(theme_BCStats())
@@ -85,25 +84,25 @@ launch <- function(prompt = interactive()) {
       conditionalPanel(
         "input.currentTab == 'ptt'",
         radioButtons(
-          "pttVisType", "Information shown:", 
+          "pttVisType", "Pre-choosen groups:", 
           choices = c(
             "Foreign Involvement" = "foreign",
-            "Choose your own" = "choose"
+            "Overall Transactions" = "overall",
+            "Commercial Transactions" = "commercial",
+            "Residential Transactions" = "residential"
           ),
-          selected = "foreign"
+          selected = "foreign",
+          inline = TRUE
         ),
-        conditionalPanel(
-          "input.pttVisType == 'choose'",
-          selectizeInput(
-            "pttVars", 
-            label = "Choose variables:", 
-            choices = pttVars, 
-            selected = factor(defaultPttVars(), levels = pttVars), 
-            multiple = TRUE,
-            width = "100%",
-            options = list(maxItems = 8)
-          ) 
-        )
+        selectizeInput(
+          "pttVars", 
+          label = "Add/remove variables:", 
+          choices = c(defaultPttVars("foreign"), setdiff(pttVars, defaultPttVars("foreign"))), 
+          selected = defaultPttVars("foreign"), 
+          multiple = TRUE,
+          width = "100%",
+          options = list(maxItems = 8)
+        ) 
       ),
       conditionalPanel(
         "input.currentTab == 'create'",
@@ -220,7 +219,7 @@ launch <- function(prompt = interactive()) {
     observeEvent(input$currentTab, {
       
       updateSelectInput(
-        session = session, inputId = "regionType", label = "Choose a resolution",
+        session = session, inputId = "regionType",
         choices = geoByTab(input$currentTab),
         selected = switch(
           input$currentTab,
@@ -228,6 +227,19 @@ launch <- function(prompt = interactive()) {
           dwelling = "tracts",
           ptt = "developments"
         )
+      )
+      
+    })
+    
+    # modify the items defining the ptt variables to visualize 
+    observeEvent(input$pttVisType, {
+      
+      vars <- defaultPttVars(input$pttVisType)
+      updateSelectizeInput(
+        session = session, inputId = "pttVars",
+        # ensure these variables are listed first, in a sensible order
+        choices = c(vars, setdiff(pttVars, vars)),
+        selected = vars
       )
       
     })
@@ -322,7 +334,7 @@ launch <- function(prompt = interactive()) {
           annotations = list(
             text = "Brush points to \n highlight tracts \n (double-click to reset)",
             x = 0.5, y = 0.75, xref = "paper", yref = "paper",
-            ax = 100, ay = -100
+            ax = 100, ay = - (1/11 * input$height)
           )
         ) %>%
         highlight(off = "plotly_deselect", dynamic = TRUE, persistent = TRUE)
@@ -337,16 +349,13 @@ launch <- function(prompt = interactive()) {
       d <- getPttData()
       validateInput(d)
       
-      p <- ggplot(d, aes(trans_period, value, group = label)) +
+      p <- ggplot(d, aes(trans_period, value, group = label, text = txt)) +
         geom_line() +
         facet_wrap(~variable, scales = "free_y", ncol = 1) + 
         theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
         labs(x = NULL, y = NULL)
       
-      p %>%
-        ggplotly(
-          height = input$height, tooltip = c("x", "group"), dynamicTicks = TRUE
-        ) %>% 
+      ggplotly(p, height = input$height, tooltip = "text", dynamicTicks = TRUE) %>% 
         highlight("plotly_click", "plotly_doubleclick", dynamic = TRUE) %>%
         layout(
           dragmode = "zoom", 
@@ -354,7 +363,7 @@ launch <- function(prompt = interactive()) {
           annotations = list(
             text = "Click to select a region (double-click to reset)",
             x = 0.15, y = 0.97, xref = "paper", yref = "paper",
-            ax = 20, ay = -50
+            ax = 20, ay = - (1/13 * input$height)
           )
         )
     })

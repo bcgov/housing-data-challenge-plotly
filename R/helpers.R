@@ -59,14 +59,45 @@ dataAll <- function() {
   )
 }
 
-defaultPttVars <- function() {
-  c(
+defaultPttVars <- function(type = c("foreign", "overall", "commercial", "residential")) {
+  foreign <- c(
     "Total Market Transactions",
-    "PTT Paid ($ sum)",
     "Foreign Involvement Transactions",
-    "FMV sum of Foreign Involvement Transactions ($ sum)",
+    "FMV Average of Foreign Involvement Transactions ($ mean)",
+    "PTT Paid ($ sum)",
     "Additional Tax Paid ($ sum)"
   )
+  overall <- c(
+    "RESIDENTIAL TOTAL",
+    "COMMERCIAL TOTAL",
+    "RECREATIONAL TOTAL",
+    "FARM TOTAL",
+    "OTHER/UNKNOWN TOTAL"
+  )
+  commerical <- c(
+    'COMMERCIAL TOTAL',
+    'COMMERCIAL - COMMERCE', 
+    'COMMERCIAL - STRATA NON-RESIDENTIAL',  
+    'COMMERCIAL - OTHER'
+  )
+  residential <- c(
+    'RESIDENTIAL TOTAL',
+    'RESIDENTIAL - SINGLE FAMILY RESIDENTIAL',  
+    'RESIDENTIAL - MULTI-FAMILY', 
+    'RESIDENTIAL - STRATA RESIDENTIAL', 
+    'RESIDENTIAL - STRATA NON-RESIDENTIAL or RENTAL',
+    'RESIDENTIAL - ACREAGE',
+    'RESIDENTIAL - FARM',  
+    'RESIDENTIAL - COMMERCE',
+    'RESIDENTIAL - OTHER'
+  )
+  switch(
+    match.arg(type),
+    foreign = foreign,
+    overall = overall,
+    commerical = commerical,
+    residential = residential
+   )
 }
 
 # set a sensible group name default....

@@ -109,7 +109,8 @@ pttMunicipals <- pttMelt %>%
   group_by(Municipality, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
   mutate(label = toupper(Municipality)) %>%
-  recode_variable()
+  recode_variable() %>% 
+  mutate(txt = paste(Municipality, trans_period, value, sep = "<br />"))
 
 devtools::use_data(pttMunicipals, overwrite = TRUE)
 
@@ -154,7 +155,8 @@ pttDistricts <- pttMelt %>%
   group_by(RegionalDistrict, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
   mutate(label = toupper(RegionalDistrict)) %>%
-  recode_variable()
+  recode_variable() %>%
+  mutate(txt = paste(RegionalDistrict, trans_period, value, sep = "<br />"))
 
 devtools::use_data(pttDistricts, overwrite = TRUE)
 
@@ -172,7 +174,8 @@ pttDevelopments <- pttMelt %>%
   group_by(DevelopmentRegion, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
   mutate(label = toupper(DevelopmentRegion)) %>%
-  recode_variable()
+  recode_variable() %>%
+  mutate(txt = paste(DevelopmentRegion, trans_period, value, sep = "<br />"))
 
 # ---------------------------------------------------------------------------
 # manually fix label mistmatch

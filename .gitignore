@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
 README.html
 data-raw/tmp
 data-raw/*.zip
