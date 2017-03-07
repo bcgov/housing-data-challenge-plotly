@@ -84,14 +84,25 @@ launch <- function(prompt = interactive()) {
       ),
       conditionalPanel(
         "input.currentTab == 'ptt'",
-        selectizeInput(
-          "pttVars", 
-          label = "Choose variables:", 
-          choices = pttVars, 
-          selected = factor(defaultPttVars(), levels = pttVars), 
-          multiple = TRUE,
-          width = "100%",
-          options = list(maxItems = 8)
+        radioButtons(
+          "pttVisType", "Information shown:", 
+          choices = c(
+            "Foreign Involvement" = "foreign",
+            "Choose your own" = "choose"
+          ),
+          selected = "foreign"
+        ),
+        conditionalPanel(
+          "input.pttVisType == 'choose'",
+          selectizeInput(
+            "pttVars", 
+            label = "Choose variables:", 
+            choices = pttVars, 
+            selected = factor(defaultPttVars(), levels = pttVars), 
+            multiple = TRUE,
+            width = "100%",
+            options = list(maxItems = 8)
+          ) 
         )
       ),
       conditionalPanel(
@@ -135,16 +146,11 @@ launch <- function(prompt = interactive()) {
     
     rv <- reactiveValues(
       # currently selected regions (currently only used for direct manip of map)
-      regions = NULL,
-      # the (non-geo) data currently being viewed --
-      # important to know since we don't want to draw regions that we don't have...
-      # (pttMunicipals is a good example why)
-      data = NULL
+      regions = NULL
     )
     
     getGeoData <- reactive({
       validateInput(input$regionType)
-      
       geoDat <- switch(
         input$regionType,
         developments = geoDevelopments,
@@ -152,6 +158,14 @@ launch <- function(prompt = interactive()) {
         municipals = geoMunicipals,
         tracts = geoCensusTracts
       )
+      if (is.null(geoDat)) return(NULL)
+      validateInput(input$currentTab)
+      # ugh, these two developments are merged in the ptt data...
+      if (identical(input$currentTab, "ptt")) {
+        geoDat <- geoDat[!geoDat$label %in% c("NECHAKO", "NORTH COAST"), ]
+      } else {
+        geoDat <- geoDat[!geoDat$label %in% c("NECHAKO & NORTH COAST"), ]
+      }
       visDat <- tryCatch(
         get(paste0(input$currentTab, simpleCap(input$regionType))),
         error = function(e) data.frame()
@@ -364,7 +378,7 @@ launch <- function(prompt = interactive()) {
       
       SD <- getGeoData()
       d <- SD$origData()
-      bb <- st_bbox(d)
+      bb <- st_bbox(st_as_sf(d))
       
       leafletProxy("map", session) %>%
         clearGroup("foo") %>%
@@ -376,6 +390,7 @@ launch <- function(prompt = interactive()) {
           fillOpacity = if (isDwelling) 0.5 else 0.2,
           highlightOptions = if (!isDwelling) highlightOptions(fillOpacity = 1),
           label = ~txt,
+          layerId = ~label,
           group = "foo"
         ) %>% 
         fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
