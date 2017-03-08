@@ -121,7 +121,7 @@ launch <- function(prompt = interactive()) {
         windowTitle = "BC Housing Market Explorer",
         title = a(
           target = "_blank", 
-          href = "https://github.com/bcgov/housing-data-challenge-plotly#using-the-app", 
+          href = "https://vimeo.com/207379729", 
           icon("question-circle")
         ),
         tabPanel(

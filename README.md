@@ -26,8 +26,8 @@ make
 
 ## Using the app
 
-Click on the image below to see an example of the possible interactivity:
+Click on the image below to a full demo of the application:
 
-<a href="https://i.imgur.com/WvSQ8ze.gif">
-  <img src="http://i.imgur.com/pV9Gjb8.png" />
+<a href="https://vimeo.com/207379729">
+  <img src="http://i.imgur.com/HSW3ruY.gif" />
 </a>
