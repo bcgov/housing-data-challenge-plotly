@@ -55,7 +55,7 @@ launch <- function(prompt = interactive()) {
     "input.currentTab != 'create'",
     sliderInput(
       "height", "Height of plot", 
-      value = 600, min = 100, max = 3000, step = 25
+      value = 625, min = 100, max = 3000, step = 25
     )
   )
   
@@ -297,7 +297,7 @@ launch <- function(prompt = interactive()) {
         facet_wrap(~label, ncol = 1, scales = "free_y") + 
         labs(y = NULL, title = "Population by age and gender from 1986 to 2016")
       
-      ggplotly(p, height = input$height, dynamicTicks = TRUE, tooltip = "Gender") %>%
+      ggplotly(p, height = input$height, dynamicTicks = TRUE, tooltip = c("Gender", "Year")) %>%
         hide_legend() %>%
         animation_opts(300)
     })
