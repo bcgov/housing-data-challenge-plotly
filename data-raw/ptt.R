@@ -108,8 +108,9 @@ recode_variable <- function(d) {
 pttMunicipals <- pttMelt %>%
   group_by(Municipality, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = Municipality) %>%
-  recode_variable()
+  mutate(label = toupper(Municipality)) %>%
+  recode_variable() %>% 
+  mutate(txt = paste(Municipality, trans_period, value, sep = "<br />"))
 
 devtools::use_data(pttMunicipals, overwrite = TRUE)
 
@@ -153,8 +154,9 @@ pttMelt <- ptt %>%
 pttDistricts <- pttMelt %>%
   group_by(RegionalDistrict, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = RegionalDistrict) %>%
-  recode_variable()
+  mutate(label = toupper(RegionalDistrict)) %>%
+  recode_variable() %>%
+  mutate(txt = paste(RegionalDistrict, trans_period, value, sep = "<br />"))
 
 devtools::use_data(pttDistricts, overwrite = TRUE)
 
@@ -171,7 +173,25 @@ pttMelt <- ptt %>%
 pttDevelopments <- pttMelt %>%
   group_by(DevelopmentRegion, trans_period, variable) %>%
   summarise(value = sum(value, na.rm = TRUE)) %>%
-  rename(label = DevelopmentRegion) %>%
-  recode_variable()
+  mutate(label = toupper(DevelopmentRegion)) %>%
+  recode_variable() %>%
+  mutate(txt = paste(DevelopmentRegion, trans_period, value, sep = "<br />"))
+
+# ---------------------------------------------------------------------------
+# manually fix label mistmatch
+# ---------------------------------------------------------------------------
+
+setdiff(pttDevelopments$label, geoDevelopments$label)
+#> [1] "REST OF PROVINCE" "THOMPSON/OKANAGAN" "UNKNOWN/RURAL"   
+unique(geoDevelopments$label)
+#> [1] "KOOTENAY"               "THOMPSON OKANAGAN"      "MAINLAND/SOUTHWEST"     "VANCOUVER ISLAND/COAST"
+#> [5] "CARIBOO"                "NORTH COAST"            "NECHAKO"                "NORTHEAST"     
+
+pttDevelopments <- pttDevelopments %>%
+  mutate(
+    label = recode(
+      label, "THOMPSON/OKANAGAN" = "THOMPSON OKANAGAN"
+    )
+  )
 
 devtools::use_data(pttDevelopments, overwrite = TRUE)

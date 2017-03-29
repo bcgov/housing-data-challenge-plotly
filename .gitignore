@@ -2,10 +2,15 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
 README.html
 data-raw/tmp
 data-raw/*.zip
 data-raw/*.csv
+todo.txt
+transcript.txt
+*.cmproj
+*.mp4
 *.pdf
 *.docx
 me.jpg

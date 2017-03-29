@@ -15,35 +15,31 @@ launch <- function(prompt = interactive()) {
   data("geoDistricts", package = "bcviz")
   data("geoMunicipals", package = "bcviz")
   data("geoCensusTracts", package = "bcviz")
-  geoDevelopments$label <- toupper(geoDevelopments$label)
-  geoDistricts$label <- toupper(geoDistricts$label)
-  geoMunicipals$label <- toupper(geoMunicipals$label)
-  geoCensusTracts$label <- toupper(geoCensusTracts$label)
   
   # population estimates
   data("popDevelopments", package = "bcviz")
   data("popDistricts", package = "bcviz")
-  popDevelopments$label <- toupper(popDevelopments$label)
-  popDistricts$label <- toupper(popDistricts$label)
   
   # dwelling and population in 2011/2016
   data("dwellTracts", package = "bcviz")
-  dwellTracts$label <- toupper(dwellTracts$label)
   
   # property tax transfer
   data("pttDevelopments", package = "bcviz")
   data("pttDistricts", package = "bcviz")
   data("pttMunicipals", package = "bcviz")
-  pttDevelopments$label <- toupper(pttDevelopments$label)
-  pttDistricts$label <- toupper(pttDistricts$label)
-  pttMunicipals$label <- toupper(pttMunicipals$label)
   
+  # links to plotly grids (for creation)
+  data("gridLinks", package = "bcviz")
   
+  # add hovertext info for census tracts
+  geoCensusTracts <- dplyr::left_join(
+    geoCensusTracts, dwellTracts[c("label", "txt")], by = "label"
+  )
+  
+  # collect all unique ptt vars and provide a sensible ordering
   pttVars <- unique(
     c(pttMunicipals$variable, pttDistricts$variable, pttMunicipals$variable)
   )
-  pttVars <- c(defaultPttVars(), setdiff(pttVars, defaultPttVars()))
-  
   
   # base theme for ggplot2 derived plots
   theme_set(theme_BCStats())
@@ -51,15 +47,15 @@ launch <- function(prompt = interactive()) {
   # determine some global bounds
   bb <- st_bbox(geoDistricts)
   
-  # let leaflet know about persistent selection
+  # inform leaflet about persistent selection
   options(persistent = TRUE)
   
   # widget to change the height of the plot
-  plotHeightInput <- conditionalPanel(
+  heightInput <- conditionalPanel(
     "input.currentTab != 'create'",
     sliderInput(
-      "plotHeight", "Height of plot", 
-      value = 600, min = 100, max = 3000, step = 25
+      "height", "Height of plot", 
+      value = 625, min = 100, max = 3000, step = 25
     )
   )
   
@@ -70,7 +66,11 @@ launch <- function(prompt = interactive()) {
     include_css("region.css"),
       
     column(
-      4, leafletOutput("map", height = 450),
+      4, div(
+        style = "color:#777;position:relative;top:70%;transform:translateY(-50%);", 
+        h2("BC Housing Market Explorer")
+      ),
+      leafletOutput("map", height = 450),
       fluidRow(
         column(
           # Assuming property transfer is the default tab
@@ -79,19 +79,30 @@ launch <- function(prompt = interactive()) {
             choices = geoByTab("ptt"), selected = "developments"
           )
         ),  
-        column(6, plotHeightInput)
+        column(6, heightInput)
       ),
       conditionalPanel(
         "input.currentTab == 'ptt'",
+        radioButtons(
+          "pttVisType", "Pre-choosen groups:", 
+          choices = c(
+            "Foreign Involvement" = "foreign",
+            "Overall Transactions" = "overall",
+            "Commercial Transactions" = "commercial",
+            "Residential Transactions" = "residential"
+          ),
+          selected = "foreign",
+          inline = TRUE
+        ),
         selectizeInput(
           "pttVars", 
-          label = "Choose variables:", 
-          choices = pttVars, 
-          selected = factor(defaultPttVars(), levels = pttVars), 
+          label = "Add/remove variables:", 
+          choices = c(defaultPttVars("foreign"), setdiff(pttVars, defaultPttVars("foreign"))), 
+          selected = defaultPttVars("foreign"), 
           multiple = TRUE,
           width = "100%",
           options = list(maxItems = 8)
-        )
+        ) 
       ),
       conditionalPanel(
         "input.currentTab == 'create'",
@@ -105,24 +116,27 @@ launch <- function(prompt = interactive()) {
     
     # TODO: provide an icon in the title which links to help videos?
     column(
-      8, navbarPage(title = "BC Housing Market", id = "currentTab", selected = "ptt",
-      tabPanel(
-        "Population", value = "population", #icon = tags$icon("question-circle"),
-        plotlyOutput("pop", height = 600) 
-      ),
-      tabPanel(
-        "Dwelling", value = "dwelling", 
-        plotlyOutput("dwell", height = 500)
-      ),
-      tabPanel(
-        title = "Property Transfer", value = "ptt",
-        plotlyOutput("ptt", height = 600)
-      ),
-      tabPanel(
-        title = "Create", value = "create",
-        dataTableOutput("createDataTable")
-      )
-    ))
+      8, navbarPage(
+        id = "currentTab", selected = "ptt", 
+        windowTitle = "BC Housing Market Explorer",
+        title = a(
+          target = "_blank", 
+          href = "https://vimeo.com/207379729", 
+          icon("question-circle")
+        ),
+        tabPanel(
+          "Population", value = "population", plotlyOutput("pop", height = 600) 
+        ),
+        tabPanel(
+          "Dwelling", value = "dwelling", plotlyOutput("dwell", height = 500)
+        ),
+        tabPanel(
+          title = "Property Transfer", value = "ptt", plotlyOutput("ptt", height = 600)
+        ),
+        tabPanel(
+          title = "Create", value = "create", dataTableOutput("createDataTable")
+        )
+      ))
     
   ))
   
@@ -131,11 +145,7 @@ launch <- function(prompt = interactive()) {
     
     rv <- reactiveValues(
       # currently selected regions (currently only used for direct manip of map)
-      regions = NULL,
-      # the (non-geo) data currently being viewed --
-      # important to know since we don't want to draw regions that we don't have...
-      # (pttMunicipals is a good example why)
-      data = NULL
+      regions = NULL
     )
     
     getGeoData <- reactive({
@@ -147,6 +157,14 @@ launch <- function(prompt = interactive()) {
         municipals = geoMunicipals,
         tracts = geoCensusTracts
       )
+      if (is.null(geoDat)) return(NULL)
+      validateInput(input$currentTab)
+      # ugh, these two developments are merged in the ptt data...
+      if (identical(input$currentTab, "ptt")) {
+        geoDat <- geoDat[!geoDat$label %in% c("NECHAKO", "NORTH COAST"), ]
+      } else {
+        geoDat <- geoDat[!geoDat$label %in% c("NECHAKO & NORTH COAST"), ]
+      }
       visDat <- tryCatch(
         get(paste0(input$currentTab, simpleCap(input$regionType))),
         error = function(e) data.frame()
@@ -155,6 +173,9 @@ launch <- function(prompt = interactive()) {
       if (!is.null(visDat) && "label" %in% intersect(names(geoDat), names(visDat))) {
         geoDat <- semi_join(geoDat, visDat, by = "label")
       }
+      # fallback on "standard" key if no informative tooltip is available
+      # NOTE: this appears to only work for list-columns?
+      geoDat[["txt"]] <- lapply(geoDat[["txt"]] %||% geoDat[["label"]], HTML)
       # TODO: join with visDat to populate informative tooltips!
       shared_data(geoDat)
     })
@@ -198,7 +219,7 @@ launch <- function(prompt = interactive()) {
     observeEvent(input$currentTab, {
       
       updateSelectInput(
-        session = session, inputId = "regionType", label = "Choose a resolution",
+        session = session, inputId = "regionType",
         choices = geoByTab(input$currentTab),
         selected = switch(
           input$currentTab,
@@ -206,6 +227,21 @@ launch <- function(prompt = interactive()) {
           dwelling = "tracts",
           ptt = "developments"
         )
+      )
+      
+    })
+    
+    # modify the items defining the ptt variables to visualize 
+    observeEvent(input$pttVisType, {
+      
+      redrawRegions()
+      
+      vars <- defaultPttVars(input$pttVisType)
+      updateSelectizeInput(
+        session = session, inputId = "pttVars",
+        # ensure these variables are listed first, in a sensible order
+        choices = c(vars, setdiff(pttVars, vars)),
+        selected = vars
       )
       
     })
@@ -249,6 +285,8 @@ launch <- function(prompt = interactive()) {
     
     output$pop <- renderPlotly({
       
+      input$currentTab
+      
       # get and validate that data is ready
       d <- getPopData()
       validateInput(d)
@@ -259,7 +297,7 @@ launch <- function(prompt = interactive()) {
         facet_wrap(~label, ncol = 1, scales = "free_y") + 
         labs(y = NULL, title = "Population by age and gender from 1986 to 2016")
       
-      ggplotly(p, dynamicTicks = TRUE, tooltip = "Gender") %>%
+      ggplotly(p, height = input$height, dynamicTicks = TRUE, tooltip = c("Gender", "Year")) %>%
         hide_legend() %>%
         animation_opts(300)
     })
@@ -273,18 +311,32 @@ launch <- function(prompt = interactive()) {
       d <- getDwellData()
       validateInput(d)
       
-      p <- ggplot(d, aes(x = pop16 / area, y = pop16 / dwell16)) + 
+      p1 <- ggplot(d, aes(x = pop16 / area, y = pop16 / dwell16)) + 
         geom_point(aes(text = txt), alpha = 0.2) + 
         labs(x = "People per square km", y = "People per dwelling")
+      
+      gg1 <- ggplotly(p1, height = input$height, tooltip = "text")
+      
+      p2 <- ggplot(d) +
+        geom_segment(
+          alpha = 0.2,
+          aes(x = "2011", xend = "2016", y = pop11, yend = pop16, group = label),
+        ) +
+        geom_point(aes(x = "2011", y = pop11, text = txt), size = .5, alpha = 0.2) +
+        geom_point(aes(x = "2016", y = pop16, text = txt), size = 1, alpha = 0.2) +
+        labs(x = NULL, y = "Population")
+      
+      gg2 <- ggplotly(p2, tooltip = "text")
         
-      # TODO: color by difference in population (11 to 16)!?!
-      ggplotly(p, tooltip = "text") %>% 
+      subplot(
+        gg1, gg2, titleX = TRUE, titleY = TRUE, nrows = 2, margin = c(0, 0, .05, .05)
+      ) %>% 
         layout(
           dragmode = "select",
           annotations = list(
             text = "Brush points to \n highlight tracts \n (double-click to reset)",
-            x = 0.5, y = 0.5, xref = "paper", yref = "paper",
-            ax = 100, ay = -100
+            x = 0.5, y = 0.75, xref = "paper", yref = "paper",
+            ax = 100, ay = - (1/11 * input$height)
           )
         ) %>%
         highlight(off = "plotly_deselect", dynamic = TRUE, persistent = TRUE)
@@ -299,62 +351,33 @@ launch <- function(prompt = interactive()) {
       d <- getPttData()
       validateInput(d)
       
-      p <- ggplot(d, aes(trans_period, value, group = label)) +
+      p <- ggplot(d, aes(trans_period, value, group = label, text = txt)) +
         geom_line() +
         facet_wrap(~variable, scales = "free_y", ncol = 1) + 
-        theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + 
+        theme(legend.position = "none", axis.text.x = element_text(angle = 15)) + 
         labs(x = NULL, y = NULL)
       
-      p %>%
-        ggplotly(
-          height = input$plotHeight, tooltip = c("x", "group"), dynamicTicks = TRUE
-        ) %>% 
+      ggplotly(p, height = input$height, tooltip = "text", dynamicTicks = TRUE) %>% 
         highlight("plotly_click", "plotly_doubleclick", dynamic = TRUE) %>%
         layout(
           dragmode = "zoom", 
-          margin = list(l = 100, b = 100, t = 40),
+          margin = list(l = 100, b = 100, t = 45),
           annotations = list(
             text = "Click to select a region (double-click to reset)",
             x = 0.15, y = 0.97, xref = "paper", yref = "paper",
-            ax = -10, ay = -43
+            ax = 20, ay = - (1/13 * input$height)
           )
         )
     })
     
-    # out with the old polygons, in with the new
     observeEvent(input$regionType, {
-      
-      # selected regions can't persist when changing resolution...
-      # well, maybe when increasing the resolution?
-      rv$regions <- NULL
-      
-      # dwelling vis has different opacity settings...
-      isDwelling <- identical(input$currentTab, "dwelling")
-      
-      d <- getGeoData()
-      bb <- st_bbox(d$origData())
-      
-      leafletProxy("map", session) %>%
-        clearGroup("foo") %>%
-        addPolygons(
-          data = getGeoData(),
-          color = "black",
-          weight = 1,
-          opacity = 1,
-          fillOpacity = if (isDwelling) 0.5 else 0.2,
-          highlightOptions = if (!isDwelling) highlightOptions(fillOpacity = 1),
-          label = ~label,
-          layerId = ~label,
-          group = "foo"
-        ) %>% 
-        fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
+      redrawRegions()
     })
     
     observeEvent(input$currentTab, {
-
-      map <- leafletProxy("map", session) %>%
-        clearGroup("label")
-
+      redrawRegions()
+      
+      # draw visual clue letting user know they may click regions 
       if (identical(input$currentTab, "population")) {
         leafletProxy("map", session) %>%
           addLabelOnlyMarkers(
@@ -362,11 +385,43 @@ launch <- function(prompt = interactive()) {
             label = HTML("Click on a region <br /> to select it"),
             labelOptions = labelOptions(noHide = TRUE, textsize = '15px')
           )
+      } else {
+        leafletProxy("map", session) %>%
+          clearGroup("label")
       }
 
     })
     
+    # out with the old polygons, in with the new
+    redrawRegions <- function() {
+      # selected regions can't persist when changing resolution...
+      # well, maybe when increasing the resolution?
+      rv$regions <- NULL
+      
+      # dwelling vis has different opacity settings...
+      isDwelling <- identical(input$currentTab, "dwelling")
+      
+      SD <- getGeoData()
+      d <- SD$origData()
+      bb <- st_bbox(st_as_sf(d))
+      
+      leafletProxy("map", session) %>%
+        clearGroup("foo") %>%
+        addPolygons(
+          data = SD,
+          color = "black",
+          weight = 1,
+          opacity = 1,
+          fillOpacity = if (isDwelling) 0.5 else 0.2,
+          highlightOptions = if (!isDwelling) highlightOptions(fillOpacity = 1),
+          label = ~txt,
+          layerId = ~label,
+          group = "foo"
+        ) %>% 
+        fitBounds(bb[["xmin"]], bb[["ymin"]], bb[["xmax"]], bb[["ymax"]])
+    }
     
+    # TODO: use updateSelectInput()?
     output$dataType <- renderUI({
       validateInput(input$regionType)
       selectInput(
@@ -380,7 +435,6 @@ launch <- function(prompt = interactive()) {
     # ---------------------------------------------------------------------
     
     getCreateData <- reactive({
-      # TODO: how to provide wide forms of data?
       validateInput(input$dataType)
       d <- tryCatch(
         get(paste0(input$dataType, simpleCap(input$regionType))),
@@ -393,11 +447,6 @@ launch <- function(prompt = interactive()) {
       d
     })
     
-    # post to plotly's create page
-    observeEvent(input$buttonCreate, {
-      print(upload_grid(getCreateData(), filename = new_id()))
-    })
-    
     output$createDataTable <- renderDataTable({
       getCreateData()
     })
@@ -408,6 +457,13 @@ launch <- function(prompt = interactive()) {
         write.csv(getCreateData(), file, row.names = FALSE)
       }
     )
+    
+    # post to plotly's create page
+    observeEvent(input$buttonCreate, {
+      datName <- paste0(input$dataType, simpleCap(input$regionType))
+      browseURL(paste0("https://plot.ly/create/?fid=", gridLinks[[datName]]))
+    })
+    
     
   } # end of server() function
   

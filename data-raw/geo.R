@@ -16,8 +16,24 @@ if (!file.exists(target)) {
 unzip(target, exdir = "data-raw/tmp")
 d <- st_read("data-raw/tmp/DR.shp", stringsAsFactors = FALSE)
 d2 <- st_simplify(d, dTolerance = 350)
-geoDevelopments <- mutate(st_transform(d2, 4326), label = DR_NAME)
+geoDevelopments <- mutate(st_transform(d2, 4326), label = toupper(DR_NAME))
+
+# Merge North Coast and Nechako for ptt data
+bleh <- geoDevelopments %>% 
+  filter(label %in% c("NORTH COAST", "NECHAKO")) %>% 
+  st_combine() %>% 
+  st_union()
+
+blehdf <- st_sf(
+  DR_NUM = NA, DR_NAME = NA, DR = NA, 
+  label = "NECHAKO & NORTH COAST", geometry = st_geometry(bleh)
+)
+
+geoDevelopments <- rbind(geoDevelopments, blehdf)
 devtools::use_data(geoDevelopments, overwrite = TRUE)
+
+
+
 
 # ---------------------------------------------------------------------------
 # obtain/simplify shape files for the 28 regional districts
@@ -45,7 +61,7 @@ d2 <- st_simplify(d, dTolerance = 4000)
 # Use 'label' as a "primary key" for display-info/linking
 # also, leaflet currently requires this transform?
 # https://github.com/rstudio/leaflet/blob/24a7dfa68528e32265aa325610eca7f8fa7a8050/R/normalize-sf.R#L86-L91
-geoDistricts <- mutate(st_transform(d2, 4326), label = CDNAME)
+geoDistricts <- mutate(st_transform(d2, 4326), label = toupper(CDNAME))
 devtools::use_data(geoDistricts, overwrite = TRUE)
 
 # ---------------------------------------------------------------------------
@@ -62,7 +78,7 @@ unzip(target, exdir = "data-raw/tmp")
 # this shape file is super high resolution, simplify it!
 d <- st_read("data-raw/tmp/CSD_2011.shp")
 d2 <- st_simplify(d, dTolerance = 35)
-geoMunicipals <- mutate(st_transform(d2, 4326), label = CSDNAME)
+geoMunicipals <- mutate(st_transform(d2, 4326), label = toupper(CSDNAME))
 devtools::use_data(geoMunicipals, overwrite = TRUE)
 
 
@@ -85,7 +101,7 @@ d <- st_read("data-raw/tmp/lct_000a16a_e.shp", stringsAsFactors = FALSE)
 dbc <- d[grepl("British Columbia", d$PRNAME, fixed = TRUE), ]
 # only keep the important bits
 geoCensusTracts <- dbc %>%
-  mutate(label = CTUID, label = CTUID) %>%
+  mutate(label = CTUID, label = toupper(CTUID)) %>%
   select(label, geometry) %>%
   st_transform(4326)
 devtools::use_data(geoCensusTracts, overwrite = TRUE)
