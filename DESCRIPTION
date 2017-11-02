@@ -25,5 +25,4 @@ Suggests:
   bookdown
 RoxygenNote: 6.0.1
 Remotes:
-  cpsievert/leaflet@carson/feature/plotly,
-  ropensci/plotly@bugfix/newplot
+  cpsievert/leaflet@carson/feature/plotly
