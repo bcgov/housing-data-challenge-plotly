@@ -339,7 +339,7 @@ launch <- function(prompt = interactive()) {
             ax = 100, ay = - (1/11 * input$height)
           )
         ) %>%
-        highlight(off = "plotly_deselect", dynamic = TRUE, persistent = TRUE)
+        highlight("plotly_selected", dynamic = TRUE, persistent = TRUE)
     })
     
     output$ptt <- renderPlotly({
